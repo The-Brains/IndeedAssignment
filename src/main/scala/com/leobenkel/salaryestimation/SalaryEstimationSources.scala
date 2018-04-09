@@ -27,6 +27,7 @@ trait SalaryEstimationSources {
     jobPosting
       .join(salaryData, JobPostingColumnNames.JobId)
       .as[JobData]
+      .repartition(6)
   }
 
   private def getJobPosting(
@@ -39,6 +40,7 @@ trait SalaryEstimationSources {
         && j.industry != null
         && j.jobId != null
       )
+      .repartition(6)
   }
 
   def getTrainingData(implicit spark: SparkSession): Dataset[JobPosting] = {

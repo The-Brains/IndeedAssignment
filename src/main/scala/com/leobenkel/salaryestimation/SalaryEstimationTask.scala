@@ -62,10 +62,10 @@ case class SalaryEstimationTask(spark: SparkSession)
   private def assembleData: DataFrame = {
     import spark.implicits._
 
-    val jobPostings = getTrainingData.repartition(6).cache
+    val jobPostings = getTrainingData.cache
     log.info(s"Got training data (${jobPostings.count})")
 
-    val trainingData: Dataset[JobData] = getTrainingLabel(jobPostings).repartition(6).cache
+    val trainingData: Dataset[JobData] = getTrainingLabel(jobPostings).cache
     log.info(s"Got training label. Data: ${trainingData.count}")
 
     trainingData
@@ -96,7 +96,13 @@ case class SalaryEstimationTask(spark: SparkSession)
     val outputPath = IoData.getTargetPath("test_salaries_2013-03-07.csv")
     IoData.writeCsv(
       results
-        .withColumnRenamed(JobPostingColumnNames.PredictionCol, JobPostingColumnNames.SalaryCol),
+        .withColumnRenamed(JobPostingColumnNames.PredictionCol, JobPostingColumnNames.SalaryCol)
+        .selectExpr(
+          JobPostingColumnNames.JobId,
+          s"cast(${JobPostingColumnNames.SalaryCol} as int) ${JobPostingColumnNames.SalaryCol}"
+        )
+        .sort(JobPostingColumnNames.JobId)
+        .coalesce(1),
       outputPath
     )
   }
